@@ -2,29 +2,34 @@
 @inject HttpClient Http
 @using FamilyTask.Components
 @using FamilyTask.Shared.Components
+@using System.Collections.Generic
+@using WebClient.Abstractions
 
-@if(isLoaded) {
+@if (isLoaded)
+{
     <div class="page-wrapper row m-0 col-12 p-0">
         <div class="col-4 p-0">
-            <LeftMenu MenuItems="@leftMenuItem" OnAddItem="@onAddItem"/>
+            <LeftMenu MenuItems="@leftMenuItem.ToArray()" OnAddItem="@onAddItem" />
         </div>
         <div class="col-8 p-0">
-            @if (showLister) {
+            @if (showLister)
+            {
                 <div class="col-10 offset-1 pt-5">
                     <div class="row m-0">
                         <Field class="col-9 p-0 custom-input">
-                            <TextEdit Placeholder="Enter New Task"/>
+                            <TextEdit Placeholder="Enter New Task" />
                         </Field>
                         <div class="col-3 p-0 text-right">
-                            <Button class="add-btn px-4">Add</Button>
+                            <Button class="add-btn px-4" @onclick="onTaskAdd">Add</Button>
                         </div>
                     </div>
                 </div>
                 <div class="col-10 offset-1">
-                    <TaskListerComponent Tasks="@tasksToShow"/>
+                    <TaskListerComponent Tasks="@tasksToShow.ToArray()" />
                 </div>
             }
-            @if(showCreator) {
+            @if (showCreator)
+            {
                 <div class="col-10 offset-1 pt-5">
                     <FamilyMemberCreator onAddCallback="@onMemberAdd" />
                 </div>
@@ -34,80 +39,120 @@
 }
 
 @code {
-    private FamilyMember[] members;
-    private MenuItem[] leftMenuItem;
-    private TaskModel[] tasksToShow;
-    private TaskModel[] allTasks;
+    private List<FamilyMember> members = new List<FamilyMember>();
+    private List<MenuItem> leftMenuItem = new List<MenuItem>();
+    private List<TaskModel> tasksToShow = new List<TaskModel>();
+    private List<TaskModel> allTasks = new List<TaskModel>();
+    private Guid assignedToId;
     private bool isLoaded;
     private bool showLister;
     private bool showCreator;
-    protected override async Task OnInitializedAsync () {
-        members = await Http.GetFromJsonAsync<FamilyMember[]> ("sample-data/family-members.json");
-        allTasks = await Http.GetFromJsonAsync<TaskModel[]> ("sample-data/tasks.json");
-       
-        leftMenuItem = new MenuItem[members.Length + 1];
-        leftMenuItem[0] = new MenuItem {
-                label = "All Tasks",
-                referenceId = Guid.Empty,
-                isActive = true
-        };
-        leftMenuItem[0].ClickCallback += showAllTasks;
-        for (int i = 1; i < members.Length + 1; i++)
+    [Inject]
+    private IMemberDataService MemberDataService { get; set; }
+    [Inject]
+    private ITaskDataService TaskDataService { get; set; }
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await MemberDataService.GetAllMembers();
+        var tasks = await TaskDataService.GetAllTasks();
+        Console.WriteLine(result.Payload);
+        if (result != null && result.Payload != null && result.Payload.Any())
         {
-            leftMenuItem[i] = new MenuItem {
-                iconColor = members[i-1].avtar,
-                label = members[i-1].firstname,
-                referenceId = members[i-1].id,
-                isActive = false
-            };
-            leftMenuItem[i].ClickCallback += onItemClick;
-        }
-        showAllTasks(null, leftMenuItem[0]);
-        isLoaded = true;
-    }
+            foreach (var member in result.Payload)
+            {
+                members.Add(new FamilyMember()
+                {
+                    firstname = member.FirstName,
+                    lastname = member.LastName,
+                    email = member.Email,
+                    avtar = member.Avatar,
+                    role = member.Roles,
+                    id = member.Id
+                });
+            }
 
-    private void onAddItem() {
-        showLister = false;
-        showCreator = true;
-        makeMenuItemActive(null);
-        StateHasChanged();
-    }
+            foreach (var member in members)
+            {
+                leftMenuItem.Add(new MenuItem()
+                {
+                    iconColor = member.avtar,
+                    label = member.firstname,
+                    referenceId = member.id
+                });
+            }
 
-    private void onItemClick(object sender, object e) {
-        Guid val = (Guid)e.GetType().GetProperty("referenceId").GetValue(e);
-        makeMenuItemActive(e);
-        if(allTasks != null && allTasks.Length > 0) {
-            tasksToShow = allTasks.Where(item => {
-                if (item.member != null) {
-                    return item.member.id == val;
-                } else {
-                    return false;
+            if (tasks != null && tasks.Payload != null && tasks.Payload.Any()) {
+                foreach (var task in tasks.Payload) {
+                    tasksToShow.Add(new TaskModel() {
+                        id = task.Id,
+                        text = task.Subject,
+                        isDone = task.IsComplete
+                    });
                 }
-            }).ToArray();
-        }
-        showLister = true;
-        showCreator = false;
-        StateHasChanged();
-    }
-    private void showAllTasks(object sender, object e) {
-        tasksToShow = allTasks;
-        showLister = true;
-        showCreator = false;
-        makeMenuItemActive(e);
-        StateHasChanged();
-    }
+            }
 
-    private void makeMenuItemActive(object e) {
-        foreach (var item in leftMenuItem)
-        {
-            item.isActive = false;
-        }
-        if(e != null) {
-            e.GetType().GetProperty("isActive").SetValue(e, true);
+            isLoaded = true;
+            showLister = true;
         }
     }
 
-    private void onMemberAdd() {
+    private void onAddItem()
+    {
+        showCreator = true;
+        showLister = false;
+        StateHasChanged();
+    }
+
+
+
+    private async Task onMemberAdd(FamilyMember member)
+    {
         Console.WriteLine("on member add");
+        var result = await MemberDataService.Create(new Domain.Commands.CreateMemberCommand()
+        {
+            Avatar = member.avtar,
+            FirstName = member.firstname,
+            LastName = member.lastname,
+            Email = member.email,
+            Roles = member.role
+        });
+
+        if (result != null && result.Payload != null && result.Payload.Id != Guid.Empty)
+        {
+            members.Add(new FamilyMember()
+            {
+                firstname = result.Payload.FirstName,
+                lastname = result.Payload.LastName,
+                email = result.Payload.Email,
+                avtar = result.Payload.Avatar,
+                role = result.Payload.Roles,
+                id = result.Payload.Id
+            });
+            leftMenuItem.Add(new MenuItem()
+            {
+                iconColor = result.Payload.Avatar,
+                label = result.Payload.FirstName,
+                referenceId = result.Payload.Id
+            });
+            showCreator = false;
+            showLister = true;
+            StateHasChanged();
+        }
+    }
+
+    private async void onTaskAdd(TaskModel task) {
+        var result = await TaskDataService.Create(new Domain.Commands.CreateTaskCommand() {
+            Subject = task.text,
+            IsComplete = task.isDone,
+            AssignedToID = assignedToId
+        });
+
+        if (result != null && result.Payload != null && result.Payload.Id != Guid.Empty) {
+            tasksToShow.Add(new TaskModel() { 
+                text = result.Payload.Subject,
+                isDone = result.Payload.IsComplete,
+                id = result.Payload.Id
+            });
+        }
     }
 }
