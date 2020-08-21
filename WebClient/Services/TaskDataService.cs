@@ -33,5 +33,10 @@ namespace WebClient.Services
         {
             return await _httpClient.PutJsonAsync<UpdateTaskCommandResult>($"tasks/{command.Id}", command);
         }
+
+        public async Task<HttpResponseMessage> Delete(Guid Id)
+        {
+            return await _httpClient.DeleteAsync($"tasks/{Id}");
+        }
     }
 }

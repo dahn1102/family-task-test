@@ -3,6 +3,8 @@ using Domain.DataModels;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
+using Microsoft.EntityFrameworkCore;
 
 namespace DataLayer
 {
@@ -11,7 +13,6 @@ namespace DataLayer
         public MemberRepository(FamilyTaskContext context) : base(context)
         { }
 
-       
 
         IMemberRepository IBaseRepository<Guid, Member, IMemberRepository>.NoTrack()
         {

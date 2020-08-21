@@ -43,7 +43,7 @@
     {
         <div class="task-item p-3 my-3 row m-0">
             <div class="col-10 p-0">
-                <Check TValue="bool" Checked="@item.isDone" CheckedChanged="@(val => item.isDone = val)">
+                <Check TValue="bool" Checked="@item.isDone" CheckedChanged="@(val => item.InvokClickCallbackEdit(item))">
                     <span class="@(item.isDone ? "done-text" : "")">@item.text</span>
                 </Check>
             </div>
@@ -51,7 +51,7 @@
                 @if (item.member != null) {
                     <div class="avtar mr-1" style="background-color: @item.member.avtar;"></div>
                 }
-                <img class="delete-icon" src="/assets/images/delete-icon.svg"/>
+                <img class="delete-icon" src="/assets/images/delete-icon.svg" @onclick="@(e => item.InvokClickCallbackDelete(item.id))"/>
             </div>
         </div>
     }
@@ -59,4 +59,5 @@
 
 @code  {
     [Parameter] public TaskModel[] Tasks { get; set; }
+    
 }

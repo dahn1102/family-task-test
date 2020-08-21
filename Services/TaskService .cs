@@ -27,6 +27,7 @@ namespace Services
         public async Task<CreateTaskCommandResult> CreateTaskCommandHandler(CreateTaskCommand command)
         {
             var task = _mapper.Map<Domain.DataModels.Task>(command);
+
             var createdTask = await _taskRepository.CreateRecordAsync(task);
 
             var vm = _mapper.Map<TaskVm>(createdTask);
@@ -36,21 +37,22 @@ namespace Services
                 Payload = vm
             };
         }
-        
+
         public async Task<UpdateTaskCommandResult> UpdateTaskCommandHandler(UpdateTaskCommand command)
         {
             var isSucceed = true;
             var task = await _taskRepository.ByIdAsync(command.Id);
 
             _mapper.Map<UpdateTaskCommand, Domain.DataModels.Task>(command, task);
-            
+
             var affectedRecordsCount = await _taskRepository.UpdateRecordAsync(task);
 
             if (affectedRecordsCount < 1)
                 isSucceed = false;
 
-            return new UpdateTaskCommandResult() { 
-               Succeed = isSucceed
+            return new UpdateTaskCommandResult()
+            {
+                Succeed = isSucceed
             };
         }
 
@@ -58,15 +60,20 @@ namespace Services
         {
             IEnumerable<TaskVm> vm = new List<TaskVm>();
 
-            var tasks = await _taskRepository.Reset().ToListAsync();
+            var tasks = await _taskRepository.GetAllTask();
 
             if (tasks != null && tasks.Any())
                 vm = _mapper.Map<IEnumerable<TaskVm>>(tasks);
 
-            return new GetAllTasksQueryResult() { 
+            return new GetAllTasksQueryResult()
+            {
                 Payload = vm
             };
         }
 
+        public async Task<int> DeleteTaskCommandHandler(Guid id)
+        {
+            return await _taskRepository.DeleteRecordAsync(id);
+        }
     }
 }
