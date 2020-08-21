@@ -33,5 +33,9 @@ namespace WebClient.Services
         {
             return await _httpClient.PutJsonAsync<UpdateMemberCommandResult>($"members/{command.Id}", command);
         }
+
+        public async Task<GetMemberByIdQueryResult> GetMemberById(Guid id) {
+            return await _httpClient.GetJsonAsync<GetMemberByIdQueryResult>($"members/{id}");
+        }
     }
 }

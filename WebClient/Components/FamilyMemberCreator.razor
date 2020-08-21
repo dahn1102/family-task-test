@@ -83,7 +83,11 @@
                         }
                     </div>
                     <div class="col-3 p-0 text-right">
+                        @if (member.id != Guid.Empty) { 
+                        <Button class="add-btn px-3" @onclick="@onEditClick">Update</Button>
+                        } else {
                         <Button class="add-btn px-3" @onclick="@onAddClick">Add</Button>
+                        }
                     </div>
                 </div>
             </Field>
@@ -94,15 +98,23 @@
 @code {
 
     [Parameter] public EventCallback<FamilyMember> onAddCallback{get; set;}
-    private FamilyMember member = new FamilyMember();
+    [Parameter] public EventCallback<FamilyMember> onEditCallBack { get; set; }
+    [Parameter] public FamilyMember member { get; set; }
     private string[] avtars = new string[] {"#FE4E4E", "#FEB84E", "#FEEC4E", "#3EC732", "#4EFEF3", "#4E7FFE", "#E54EFE", "#C17216"};
+
+    protected override void OnInitialized() {
+        member = new FamilyMember();
+    }
 
     private void onAvatarSelect(string item) {
         member.avtar = item;
     }
 
-    private async void onAddClick() {        
+    private async void onAddClick() {
         await onAddCallback.InvokeAsync(member);
     }
 
+    private async void onEditClick() {
+        await onEditCallBack.InvokeAsync(member);
+    }
 }

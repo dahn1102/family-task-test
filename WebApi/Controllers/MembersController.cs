@@ -22,6 +22,15 @@ namespace WebApi.Controllers
             _memberService = memberService;
         }
 
+        [HttpGet("{id}")]
+        [ProducesResponseType(typeof(GetMemberByIdQueryResult), StatusCodes.Status200OK)]
+        public async Task<IActionResult> Get(Guid id)
+        {
+            var result = await _memberService.GetMemberByIdQueryHandler(id);
+
+            return Ok(result);
+        }
+
         [HttpPost]
         [ProducesResponseType(typeof(CreateMemberCommandResult), StatusCodes.Status200OK)]
         public async Task<IActionResult> Create(CreateMemberCommand command)
